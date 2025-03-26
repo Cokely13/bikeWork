@@ -176,7 +176,11 @@ export default function Bicycle({ speed = 0, lean = 0, ...props }) {
         {/* Front Wheel */}
         {nodes.Wheel_a && (
           <group
-            position={nodes.Wheel_a.position}
+            position={[
+              nodes.Wheel_a.position.x + 0.03,
+              nodes.Wheel_a.position.y + 0.36,
+              nodes.Wheel_a.position.z + 0.038,
+            ]}
             rotation={nodes.Wheel_a.rotation}
             scale={nodes.Wheel_a.scale}
           >
@@ -192,7 +196,7 @@ export default function Bicycle({ speed = 0, lean = 0, ...props }) {
         {/* Back Wheel */}
         {nodes.Wheel_b && (
           <group
-            position={[0, 0, -1.0]} // 👈 tweak this Z value to move it behind the bike
+            position={[+0.03, 0.36, -1.042]} // 👈 tweak this Z value to move it behind the bike
             rotation={nodes.Wheel_b.rotation}
             scale={nodes.Wheel_b.scale}
           >
