@@ -9,6 +9,8 @@ import useGame from "./stores/useGame.jsx";
 export default function Player() {
   const body = useRef();
   const currentSpeed = useRef(0);
+  const lean = useRef(0);
+  const [leanState, setLeanState] = useState(0);
   const [subscribeKeys, getKeys] = useKeyboardControls();
   const { rapier, world } = useRapier();
   const [smoothedCameraPosition] = useState(
@@ -96,7 +98,7 @@ export default function Player() {
      */
     const { forward, backward, leftward, rightward } = getKeys();
     const velocity = body.current.linvel();
-    currentSpeed.current = Math.sqrt(velocity.x ** 2 + velocity.z ** 2);
+    // currentSpeed.current = Math.sqrt(velocity.x ** 2 + velocity.z ** 2);
 
     // const impulse = { x: 0, y: 0, z: 0 };
     // const torque = { x: 0, y: 0, z: 0 };
@@ -141,6 +143,29 @@ export default function Player() {
       rapierRot.z,
       rapierRot.w
     );
+
+    const localVelocity = new THREE.Vector3(
+      velocity.x,
+      velocity.y,
+      velocity.z
+    ).applyQuaternion(
+      new THREE.Quaternion(
+        rapierRot.x,
+        rapierRot.y,
+        rapierRot.z,
+        rapierRot.w
+      ).invert()
+    );
+    currentSpeed.current = -localVelocity.z;
+
+    // Update lean direction based on keypress
+    let targetLean = 0;
+    if (leftward) targetLean = 1;
+    if (rightward) targetLean = -1;
+
+    // Smooth transition
+    lean.current = THREE.MathUtils.lerp(lean.current, targetLean, 0.2);
+    setLeanState(lean.current);
 
     // ✅ Forward and right vectors based on actual rotation
     const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(rotation);
@@ -214,7 +239,7 @@ export default function Player() {
       <Bicycle
         rotation={[0, Math.PI, 0]}
         speed={currentSpeed.current}
-        lean={torque.y}
+        lean={leanState}
       />
     </RigidBody>
   );
