@@ -3,6 +3,7 @@ import useGame from "./stores/useGame.jsx";
 import Lights from "./Lights.jsx";
 import { Level } from "./Level.jsx";
 import Player from "./Player.jsx";
+import Cyclist from "./Cyclist.jsx";
 
 export default function Experience() {
   const blocksCount = useGame((state) => state.blocksCount);
@@ -16,6 +17,7 @@ export default function Experience() {
         <Lights />
         <Level count={blocksCount} seed={blocksSeed} />
         <Player />
+        {/* <Cyclist /> */}
       </Physics>
     </>
   );

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Bicycle from "./Bicycle";
 import * as THREE from "three";
 import useGame from "./stores/useGame.jsx";
+import Cyclist from "./Cyclist.jsx";
 
 export default function Player() {
   const body = useRef();
@@ -187,8 +188,8 @@ export default function Player() {
 
     const cameraPosition = new THREE.Vector3();
     cameraPosition.copy(bodyPosition);
-    cameraPosition.z += 2.25;
-    cameraPosition.y += 0.65;
+    cameraPosition.z += 4.5;
+    cameraPosition.y += 1.2;
 
     const cameraTarget = new THREE.Vector3();
     cameraTarget.copy(bodyPosition);
@@ -241,6 +242,11 @@ export default function Player() {
         speed={currentSpeed.current}
         lean={leanState}
       />
+      {/* <Cyclist
+        rotation={[0, 1.5, 0]}
+        speed={currentSpeed.current}
+        lean={leanState}
+      /> */}
     </RigidBody>
   );
 }
