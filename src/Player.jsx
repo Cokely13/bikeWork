@@ -1,252 +1,653 @@
-import { useRapier, RigidBody } from "@react-three/rapier";
+// import {
+//   useRapier,
+//   RigidBody,
+//   CuboidCollider,
+//   BallCollider,
+// } from "@react-three/rapier";
+// import { useFrame } from "@react-three/fiber";
+// import { useKeyboardControls } from "@react-three/drei";
+// import { useState, useEffect, useRef } from "react";
+// import Runner from "./Runner";
+// import * as THREE from "three";
+// import useGame from "./stores/useGame.jsx";
+
+// export default function Player() {
+//   const body = useRef();
+//   const currentSpeed = useRef(0);
+//   const [animation, setAnimation] = useState("rig|Idle"); // Initial animation state
+//   const [subscribeKeys, getKeys] = useKeyboardControls();
+//   const { rapier, world } = useRapier();
+//   const [smoothedCameraPosition] = useState(
+//     () => new THREE.Vector3(10, 10, 10)
+//   );
+//   const [smoothedCameraTarget] = useState(() => new THREE.Vector3());
+//   const start = useGame((state) => state.start);
+//   const end = useGame((state) => state.end);
+//   const restart = useGame((state) => state.restart);
+//   const blocksCount = useGame((state) => state.blocksCount);
+//   const [isGrounded, setIsGrounded] = useState(false);
+//   const jump = () => {
+//     if (body.current) {
+//       if (isGrounded) {
+//         // Only jump if grounded
+//         body.current.applyImpulse({ x: 0, y: 4, z: 0 }, true);
+//         setAnimation("rig|Jump"); // Set jump animation when jumping
+//         setIsGrounded(false);
+//       }
+//     }
+//   };
+
+//   const reset = () => {
+//     if (body.current) {
+//       body.current.setTranslation({ x: 0, y: 1.2, z: 0 });
+//       body.current.setLinvel({ x: 0, y: 0, z: 0 });
+//       body.current.setAngvel({ x: 0, y: 0, z: 0 });
+//     }
+//   };
+
+//   useEffect(() => {
+//     const unsubscribeReset = useGame.subscribe(
+//       (state) => state.phase,
+//       (value) => {
+//         if (value === "ready") reset();
+//       }
+//     );
+//     const unsubscribeJump = subscribeKeys(
+//       (state) => state.jump,
+//       (value) => {
+//         if (value) jump();
+//       }
+//     );
+//     const unsubscribeAny = subscribeKeys(() => {
+//       start();
+//     });
+//     return () => {
+//       unsubscribeReset();
+//       unsubscribeJump();
+//       unsubscribeAny();
+//     };
+//   }, []);
+
+//   useFrame((state, delta) => {
+//     if (!body.current) return;
+
+//     const { forward, backward, leftward, rightward, jump } = getKeys();
+//     // console.log({ forward, backward, leftward, rightward, jump });
+
+//     const velocity = body.current.linvel();
+
+//     const rapierRot = body.current.rotation();
+//     const rotation = new THREE.Quaternion(
+//       rapierRot.x,
+//       rapierRot.y,
+//       rapierRot.z,
+//       rapierRot.w
+//     );
+
+//     const localVelocity = new THREE.Vector3(
+//       velocity.x,
+//       velocity.y,
+//       velocity.z
+//     ).applyQuaternion(rotation.clone().invert());
+//     currentSpeed.current = -localVelocity.z;
+
+//     let impulseStrength = 1.2 * delta; //Base Impulse Strength
+//     const impulse = new THREE.Vector3();
+//     const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(rotation);
+//     let targetAnimation = "rig|Idle"; //Default Animation
+//     if (isGrounded) {
+//       if (forward) {
+//         targetAnimation = "rig|Walk"; //Default to walk
+//         if (getKeys().shift) {
+//           targetAnimation = "rig|Sprint"; //Sprint if shift is pressed
+//           impulseStrength = 4 * delta; // up impulse strength if shift is pressed
+//         }
+//         impulse.add(forwardVector.multiplyScalar(impulseStrength));
+//       }
+//       if (backward) {
+//         impulse.add(forwardVector.multiplyScalar(-impulseStrength * 0.5)); //Backwards is slower
+//       }
+//     }
+//     // console.log(impulse);
+//     // Smooth Turning
+//     let targetRotationY = 0;
+//     if (leftward) targetRotationY += 1;
+//     if (rightward) targetRotationY -= 1;
+//     const turnSpeed = 2 * delta; //Adjust this value for turn speed
+//     let newRotation = new THREE.Euler(0, rapierRot.y + targetRotationY, 0);
+//     body.current.setRotation(newRotation, true);
+
+//     //Animation State Update. Only change if the target animation is different
+//     if (animation !== targetAnimation) {
+//       setAnimation(targetAnimation);
+//     }
+
+//     const bodyPosition = body.current.translation();
+//     const cameraPosition = new THREE.Vector3().copy(bodyPosition);
+//     cameraPosition.z += 4.5;
+//     cameraPosition.y += 1.2;
+//     const cameraTarget = new THREE.Vector3().copy(bodyPosition);
+//     cameraTarget.y += 0.25;
+//     smoothedCameraPosition.lerp(cameraPosition, 5 * delta);
+//     smoothedCameraTarget.lerp(cameraTarget, 5 * delta);
+//     state.camera.position.copy(smoothedCameraPosition);
+//     state.camera.lookAt(smoothedCameraTarget);
+
+//     if (bodyPosition.z < -(blocksCount * 4 + 2)) end();
+//     if (bodyPosition.y < -4) restart();
+//   });
+
+//   const handleCollisionEnter = (event) => {
+//     // console.log("Collision Enter:", event); // Add this line
+//     if (event) {
+//       setIsGrounded(true);
+//     }
+//   };
+
+//   const handleCollisionExit = (event) => {
+//     // console.log("Collision Exit:", event); // Add this line
+//     if (event) {
+//       setIsGrounded(false);
+//     }
+//   };
+//   return (
+//     // <RigidBody
+//     //   ref={body}
+//     //   // canSleep={false} //remove this prop
+//     //   colliders="cuboid"
+//     //   restitution={0.2}
+//     //   friction={1}
+//     //   linearDamping={0.5}
+//     //   angularDamping={0.5}
+//     //   position={[0, 1, 0]}
+//     //   enabledRotations={[false, true, false]}
+//     //   onCollisionEnter={handleCollisionEnter}
+//     //   onCollisionExit={handleCollisionExit}
+//     // >
+//     //   <Runner
+//     //     animationName={animation}
+//     //     rotation={[0, Math.PI, 0]}
+//     //     // scale={[0.005, 0.005, 0.005]}
+//     //   />
+//     //   {/* <CuboidCollider args={[0.5, 1, 0.75]} position={[0, 0, 0]} /> */}
+//     // </RigidBody>
+//     <RigidBody
+//       ref={body}
+//       // canSleep={false} //remove this prop
+//       colliders="cuboid"
+//       restitution={0.2}
+//       friction={1}
+//       linearDamping={0.5}
+//       angularDamping={0.5}
+//       position={[0, 1, 0]}
+//       enabledRotations={[false, true, false]}
+//       enabledTranslations={[true, true, true]} //THIS LINE
+//       onCollisionEnter={handleCollisionEnter}
+//       onCollisionExit={handleCollisionExit}
+//     >
+//       <Runner
+//         animationName={animation}
+//         rotation={[0, Math.PI, 0]}
+//         // scale={[0.005, 0.005, 0.005]}
+//       />
+//       {/*<CuboidCollider args={[0.5, 1, 0.75]} position={[0, 0, 0]} />*/}
+//       <BallCollider args={[0.75]} position={[0, 0, 0]} />
+//       {/*Added sphere collider*/}
+//     </RigidBody>
+//   );
+// }
+
+// import { useRapier, RigidBody } from "@react-three/rapier";
+// import { useFrame } from "@react-three/fiber";
+// import { useKeyboardControls } from "@react-three/drei";
+// import { useState, useEffect, useRef } from "react";
+// import Runner from "./Runner";
+// import * as THREE from "three";
+// import useGame from "./stores/useGame.jsx";
+
+// export default function Player() {
+//   const body = useRef();
+//   const currentSpeed = useRef(0);
+//   const [subscribeKeys, getKeys] = useKeyboardControls();
+//   const { world } = useRapier();
+//   const [smoothedCameraPosition] = useState(
+//     () => new THREE.Vector3(10, 10, 10)
+//   );
+//   const [smoothedCameraTarget] = useState(() => new THREE.Vector3());
+//   const start = useGame((state) => state.start);
+//   const end = useGame((state) => state.end);
+//   const restart = useGame((state) => state.restart);
+//   const blocksCount = useGame((state) => state.blocksCount);
+
+//   const jump = () => {
+//     if (body.current && isGrounded) {
+//       body.current.applyImpulse({ x: 0, y: 2, z: 0 }, true);
+//       console.log("Jump triggered");
+//     }
+//   };
+
+//   const reset = () => {
+//     if (body.current) {
+//       body.current.setTranslation({ x: 0, y: 1.2, z: 0 });
+//       body.current.setLinvel({ x: 0, y: 0, z: 0 });
+//       body.current.setAngvel({ x: 0, y: 0, z: 0 });
+//       console.log("Reset");
+//     }
+//   };
+
+//   // Ground collision state (if needed)
+//   const [isGrounded, setIsGrounded] = useState(false);
+
+//   useEffect(() => {
+//     const unsubscribeReset = useGame.subscribe(
+//       (state) => state.phase,
+//       (value) => {
+//         if (value === "ready") reset();
+//       }
+//     );
+//     const unsubscribeJump = subscribeKeys(
+//       (state) => state.jump,
+//       (value) => {
+//         if (value) jump();
+//       }
+//     );
+//     const unsubscribeAny = subscribeKeys(() => {
+//       start();
+//     });
+//     return () => {
+//       unsubscribeReset();
+//       unsubscribeJump();
+//       unsubscribeAny();
+//     };
+//   }, []);
+
+//   useFrame((state, delta) => {
+//     if (!body.current) return;
+
+//     const { forward, backward } = getKeys();
+//     const velocity = body.current.linvel();
+
+//     // Get rotation as a quaternion
+//     const rapierRot = body.current.rotation();
+//     const rotation = new THREE.Quaternion(
+//       rapierRot.x,
+//       rapierRot.y,
+//       rapierRot.z,
+//       rapierRot.w
+//     );
+
+//     const localVelocity = new THREE.Vector3(
+//       velocity.x,
+//       velocity.y,
+//       velocity.z
+//     ).applyQuaternion(rotation.clone().invert());
+//     currentSpeed.current = -localVelocity.z;
+//     console.log("Current speed:", currentSpeed.current);
+
+//     // Lower impulse for slower movement; adjust strength as needed
+//     const impulseStrength = 1 * delta;
+//     const impulse = new THREE.Vector3();
+//     const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(rotation);
+
+//     if (forward) {
+//       impulse.add(forwardVector.multiplyScalar(impulseStrength));
+//       console.log("Forward impulse:", impulse);
+//     }
+//     if (backward) {
+//       impulse.add(forwardVector.multiplyScalar(-impulseStrength));
+//       console.log("Backward impulse:", impulse);
+//     }
+//     body.current.applyImpulse(impulse, true);
+
+//     // Camera control remains unchanged
+//     const bodyPosition = body.current.translation();
+//     const cameraPosition = new THREE.Vector3().copy(bodyPosition);
+//     cameraPosition.z += 4.5;
+//     cameraPosition.y += 1.2;
+//     const cameraTarget = new THREE.Vector3().copy(bodyPosition);
+//     cameraTarget.y += 0.25;
+//     smoothedCameraPosition.lerp(cameraPosition, 5 * delta);
+//     smoothedCameraTarget.lerp(cameraTarget, 5 * delta);
+//     state.camera.position.copy(smoothedCameraPosition);
+//     state.camera.lookAt(smoothedCameraTarget);
+
+//     if (bodyPosition.z < -(blocksCount * 4 + 2)) end();
+//     if (bodyPosition.y < -4) restart();
+//   });
+
+//   const handleCollisionEnter = (event) => {
+//     console.log("Collision Enter:", event);
+//     if (event) setIsGrounded(true);
+//   };
+
+//   const handleCollisionExit = (event) => {
+//     console.log("Collision Exit:", event);
+//     if (event) setIsGrounded(false);
+//   };
+
+//   return (
+//     <RigidBody
+//       ref={body}
+//       colliders="cuboid" // Use cuboid for a runner
+//       restitution={0.2}
+//       friction={1}
+//       linearDamping={0.3} // You might lower damping further
+//       angularDamping={0.3}
+//       position={[0, 1.2, 0]}
+//       enabledRotations={[false, true, false]}
+//       onCollisionEnter={handleCollisionEnter}
+//       onCollisionExit={handleCollisionExit}
+//     >
+//       <Runner
+//         animationName="rig|Idle" // Starting with idle
+//         rotation={[0, Math.PI, 0]}
+//         scale={[0.8, 0.8, 0.8]}
+//         speed={currentSpeed.current}
+//       />
+//     </RigidBody>
+//   );
+// }
+
+// import { useRapier, RigidBody } from "@react-three/rapier";
+// import { useFrame } from "@react-three/fiber";
+// import { useKeyboardControls } from "@react-three/drei";
+// import { useState, useEffect, useRef } from "react";
+// import Runner from "./Runner";
+// import * as THREE from "three";
+// import useGame from "./stores/useGame.jsx";
+
+// export default function Player() {
+//   const body = useRef();
+//   const [animation, setAnimation] = useState("rig|Idle");
+//   const [subscribeKeys, getKeys] = useKeyboardControls();
+//   const [isGrounded, setIsGrounded] = useState(false);
+//   const { start, end, restart, blocksCount } = useGame();
+
+//   const jumpImpulse = 3;
+
+//   const jump = () => {
+//     if (body.current) {
+//       body.current.applyImpulse({ x: 0, y: jumpImpulse, z: 0 }, true);
+//       setAnimation("rig|Jump");
+//       setIsGrounded(false);
+//     }
+//   };
+
+//   const reset = () => {
+//     if (body.current) {
+//       body.current.setTranslation({ x: 0, y: 1.5, z: 0 });
+//       body.current.setLinvel({ x: 0, y: 0, z: 0 });
+//       body.current.setAngvel({ x: 0, y: 0, z: 0 });
+//     }
+//   };
+
+//   useEffect(() => {
+//     const unsubscribeReset = useGame.subscribe(
+//       (state) => state.phase,
+//       (value) => {
+//         if (value === "ready") reset();
+//       }
+//     );
+
+//     const unsubscribeJump = subscribeKeys(
+//       (state) => state.jump,
+//       (pressed) => pressed && jump()
+//     );
+
+//     const unsubscribeAny = subscribeKeys(() => {
+//       start();
+//     });
+
+//     return () => {
+//       unsubscribeReset();
+//       unsubscribeJump();
+//       unsubscribeAny();
+//     };
+//   }, [subscribeKeys]);
+
+//   useFrame((state, delta) => {
+//     if (!body.current) return;
+
+//     const { forward, backward, leftward, rightward, jump } = getKeys();
+//     const velocity = body.current.linvel();
+//     const rotationQuat = body.current.rotation();
+
+//     // Movement setup
+//     const impulseStrength =
+//       forward && getKeys().shift ? 4 * delta : 1.5 * delta;
+//     const impulse = new THREE.Vector3();
+
+//     const forwardDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(
+//       new THREE.Quaternion(
+//         rotationQuat.x,
+//         rotationQuat.y,
+//         rotationQuat.z,
+//         rotationQuat.w
+//       )
+//     );
+
+//     if (forward) impulse.add(forwardDirection.multiplyScalar(impulseStrength));
+//     if (backward)
+//       impulse.add(forwardDirection.multiplyScalar(-impulseStrength * 0.5));
+//     body.current.applyImpulse(impulse, true);
+
+//     // Rotation setup
+//     const rotationSpeed = 3 * delta; // Slightly faster turning
+//     let euler = new THREE.Euler().setFromQuaternion(rotationQuat, "YXZ");
+
+//     if (leftward) euler.y += rotationSpeed;
+//     if (rightward) euler.y -= rotationSpeed;
+
+//     body.current.setRotation(euler, true);
+//     // Animation state handling
+//     if (!isGrounded) {
+//       setAnimation("rig|Jump");
+//     } else if (forward) {
+//       setAnimation(getKeys().shift ? "rig|Sprint" : "rig|Walk");
+//     } else if (backward) {
+//       setAnimation("rig|Walk");
+//     } else {
+//       setAnimation("rig|Idle");
+//     }
+
+//     // Camera smoothly follows player
+//     const playerPosition = body.current.translation();
+//     const cameraTarget = new THREE.Vector3(
+//       playerPosition.x,
+//       playerPosition.y + 0.5,
+//       playerPosition.z
+//     );
+//     const cameraPosition = new THREE.Vector3(
+//       playerPosition.x,
+//       playerPosition.y + 2,
+//       playerPosition.z + 5
+//     );
+
+//     state.camera.position.lerp(cameraPosition, 5 * delta);
+//     state.camera.lookAt(cameraTarget);
+
+//     if (playerPosition.z < -(blocksCount * 4 + 2)) end();
+//     if (playerPosition.y < -4) restart();
+//   });
+
+//   const handleCollisionEnter = () => setIsGrounded(true);
+//   const handleCollisionExit = () => setIsGrounded(false);
+
+//   return (
+//     <RigidBody
+//       ref={body}
+//       colliders="cuboid"
+//       restitution={0.1}
+//       friction={1}
+//       linearDamping={0.3}
+//       angularDamping={0.5}
+//       position={[0, 1.5, 0]}
+//       enabledRotations={[false, true, false]}
+//       onCollisionEnter={handleCollisionEnter}
+//       onCollisionExit={handleCollisionExit}
+//     >
+//       <Runner
+//         animationName={animation}
+//         rotation={[0, Math.PI, 0]}
+//         scale={[0.005, 0.005, 0.005]}
+//       />
+//     </RigidBody>
+//   );
+// }
+
+import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
 import { useKeyboardControls } from "@react-three/drei";
 import { useState, useEffect, useRef } from "react";
-import Bicycle from "./Bicycle";
+import Runner from "./Runner";
 import * as THREE from "three";
 import useGame from "./stores/useGame.jsx";
-import Cyclist from "./Cyclist.jsx";
 
 export default function Player() {
   const body = useRef();
-  const currentSpeed = useRef(0);
-  const lean = useRef(0);
-  const [leanState, setLeanState] = useState(0);
+  const [animation, setAnimation] = useState("rig|Idle");
   const [subscribeKeys, getKeys] = useKeyboardControls();
-  const { rapier, world } = useRapier();
-  const [smoothedCameraPosition] = useState(
-    () => new THREE.Vector3(10, 10, 10)
-  );
-  const [smoothedCameraTarget] = useState(() => new THREE.Vector3());
-  const start = useGame((state) => state.start);
-  const end = useGame((state) => state.end);
-  const restart = useGame((state) => state.restart);
-  const blocksCount = useGame((state) => state.blocksCount);
+  const [isGrounded, setIsGrounded] = useState(false);
+  const { start, end, restart, blocksCount } = useGame();
 
-  //   const jump = () => {
-  //     const origin = body.current.translation();
-  //     origin.y -= 0.31;
-  //     const direction = { x: 0, y: -1, z: 0 };
-  //     const ray = new rapier.Ray(origin, direction);
-  //     const hit = world.castRay(ray, 10, true);
-
-  //     if (hit.timeOfImpact < 0.15) {
-  //       body.current.applyImpulse({ x: 0, y: 0.5, z: 0 });
-  //     }
-  //   };
-  //   const jump = () => {
-  //     const bodyPosition = body.current.translation();
-
-  //     // 📌 Start a bit below the bike’s center
-  //     const origin = {
-  //       x: bodyPosition.x,
-  //       y: bodyPosition.y - 1.2, // go lower depending on your bike’s height
-  //       z: bodyPosition.z,
-  //     };
-
-  //     const direction = { x: 0, y: -1, z: 0 };
-  //     const ray = new rapier.Ray(origin, direction);
-
-  //     // Cast down 1.5 meters
-  //     const hit = world.castRay(ray, 1.5, true);
-
-  //     console.log("JUMP ray hit:", hit);
-
-  //     if (hit && hit.toi < 0.15) {
-  //       body.current.applyImpulse({ x: 0, y: 1, z: 0 }, true);
-  //     }
-  //   };
+  const jumpImpulse = 4; // Increased jump impulse for clearer jump
 
   const jump = () => {
-    body.current.applyImpulse({ x: 0, y: 1, z: 0 }, true);
+    if (body.current && isGrounded) {
+      body.current.applyImpulse({ x: 0, y: jumpImpulse, z: 0 }, true);
+      setAnimation("rig|Jump");
+      setIsGrounded(false);
+    }
   };
 
   const reset = () => {
-    body.current.setTranslation({ x: 0, y: 1, z: 0 });
-    body.current.setLinvel({ x: 0, y: 0, z: 0 });
-    body.current.setAngvel({ x: 0, y: 0, z: 0 });
+    if (body.current) {
+      body.current.setTranslation({ x: 0, y: 1.5, z: 0 });
+      body.current.setLinvel({ x: 0, y: 0, z: 0 });
+      body.current.setAngvel({ x: 0, y: 0, z: 0 });
+    }
   };
 
   useEffect(() => {
     const unsubscribeReset = useGame.subscribe(
       (state) => state.phase,
-      (value) => {
-        if (value === "ready") reset();
-      }
+      (value) => value === "ready" && reset()
     );
 
     const unsubscribeJump = subscribeKeys(
       (state) => state.jump,
-      (value) => {
-        if (value) jump();
-      }
+      (pressed) => pressed && jump()
     );
 
-    const unsubscribeAny = subscribeKeys(() => {
-      start();
-    });
+    const unsubscribeAny = subscribeKeys(() => start());
 
     return () => {
       unsubscribeReset();
       unsubscribeJump();
       unsubscribeAny();
     };
-  }, []);
+  }, [subscribeKeys]);
 
   useFrame((state, delta) => {
-    /**
-     * Controls
-     */
-    const { forward, backward, leftward, rightward } = getKeys();
-    const velocity = body.current.linvel();
-    // currentSpeed.current = Math.sqrt(velocity.x ** 2 + velocity.z ** 2);
+    if (!body.current) return;
 
-    // const impulse = { x: 0, y: 0, z: 0 };
-    // const torque = { x: 0, y: 0, z: 0 };
+    const keys = getKeys();
+    const { forward, backward, leftward, rightward, shift } = keys;
 
-    // const impulseStrength = 0.6 * delta;
-    // const torqueStrength = 0.2 * delta;
+    const rotationQuat = body.current.rotation();
 
-    // if (forward) {
-    //   impulse.z -= impulseStrength;
-    //   torque.x -= torqueStrength;
-    // }
-
-    // if (rightward) {
-    //   impulse.x += impulseStrength;
-    //   torque.z -= torqueStrength;
-    // }
-
-    // if (backward) {
-    //   impulse.z += impulseStrength;
-    //   torque.x += torqueStrength;
-    // }
-
-    // if (leftward) {
-    //   impulse.x -= impulseStrength;
-    //   torque.z += torqueStrength;
-    // }
-
-    // body.current.applyImpulse(impulse);
-    // body.current.applyTorqueImpulse(torque);
-
-    const impulseStrength = 4 * delta;
-    const torqueStrength = 1 * delta;
+    // Increased Impulse Strength for noticeable movement
+    const impulseStrength = forward
+      ? (shift ? 15 : 8) * delta
+      : backward
+      ? 4 * delta
+      : 0;
 
     const impulse = new THREE.Vector3();
-    const torque = new THREE.Vector3();
 
-    // ✅ Get rotation from body (quaternion-based)
-    const rapierRot = body.current.rotation();
-    const rotation = new THREE.Quaternion(
-      rapierRot.x,
-      rapierRot.y,
-      rapierRot.z,
-      rapierRot.w
-    );
-
-    const localVelocity = new THREE.Vector3(
-      velocity.x,
-      velocity.y,
-      velocity.z
-    ).applyQuaternion(
+    const forwardDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(
       new THREE.Quaternion(
-        rapierRot.x,
-        rapierRot.y,
-        rapierRot.z,
-        rapierRot.w
-      ).invert()
+        rotationQuat.x,
+        rotationQuat.y,
+        rotationQuat.z,
+        rotationQuat.w
+      )
     );
-    currentSpeed.current = -localVelocity.z;
 
-    // Update lean direction based on keypress
-    let targetLean = 0;
-    if (leftward) targetLean = 1;
-    if (rightward) targetLean = -1;
-
-    // Smooth transition
-    lean.current = THREE.MathUtils.lerp(lean.current, targetLean, 0.2);
-    setLeanState(lean.current);
-
-    // ✅ Forward and right vectors based on actual rotation
-    const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(rotation);
-    const rightVector = new THREE.Vector3(1, 0, 0).applyQuaternion(rotation);
-
-    // Apply impulses based on keys and direction
-    if (forward) impulse.add(forwardVector.multiplyScalar(impulseStrength));
-    if (backward) impulse.add(forwardVector.multiplyScalar(-impulseStrength));
-    if (leftward) torque.y += torqueStrength;
-    if (rightward) torque.y -= torqueStrength;
+    if (forward) impulse.add(forwardDirection.multiplyScalar(impulseStrength));
+    if (backward)
+      impulse.add(forwardDirection.multiplyScalar(-impulseStrength));
 
     body.current.applyImpulse(impulse, true);
-    body.current.applyTorqueImpulse(torque, true);
 
-    /**
-     * Camera
-     */
-    const bodyPosition = body.current.translation();
+    // Turning via Angular Velocity
+    const angularSpeed = 2; // radians per second
+    let angularVelocity = 0;
+    if (leftward) angularVelocity += angularSpeed;
+    if (rightward) angularVelocity -= angularSpeed;
+    body.current.setAngvel({ x: 0, y: angularVelocity, z: 0 });
 
-    const cameraPosition = new THREE.Vector3();
-    cameraPosition.copy(bodyPosition);
-    cameraPosition.z += 4.5;
-    cameraPosition.y += 1.2;
+    // Animation Logic
+    let newAnimation = "rig|Idle";
+    if (forward) {
+      newAnimation = shift ? "rig|Sprint" : "rig|Walk";
+    } else if (backward) {
+      newAnimation = "rig|Walk";
+    }
 
-    const cameraTarget = new THREE.Vector3();
-    cameraTarget.copy(bodyPosition);
-    cameraTarget.y += 0.25;
+    if (animation !== newAnimation) {
+      console.log("Animation changed to:", newAnimation);
+      setAnimation(newAnimation);
+    }
 
-    smoothedCameraPosition.lerp(cameraPosition, 5 * delta);
-    smoothedCameraTarget.lerp(cameraTarget, 5 * delta);
+    // Camera smoothly follows player
+    const playerPosition = body.current.translation();
+    const cameraTarget = new THREE.Vector3(
+      playerPosition.x,
+      playerPosition.y + 0.5,
+      playerPosition.z
+    );
+    const cameraPosition = new THREE.Vector3(
+      playerPosition.x,
+      playerPosition.y + 2,
+      playerPosition.z + 5
+    );
+    state.camera.position.lerp(cameraPosition, 5 * delta);
+    state.camera.lookAt(cameraTarget);
 
-    state.camera.position.copy(smoothedCameraPosition);
-    state.camera.lookAt(smoothedCameraTarget);
-
-    /**
-     * Phases
-     */
-    if (bodyPosition.z < -(blocksCount * 4 + 2)) end();
-
-    if (bodyPosition.y < -4) restart();
+    if (playerPosition.z < -(blocksCount * 4 + 2)) end();
+    if (playerPosition.y < -4) restart();
   });
 
+  const handleCollisionEnter = (e) => {
+    console.log("Collision Entered", e);
+    setIsGrounded(true);
+  };
+
+  const handleCollisionExit = (e) => {
+    console.log("Collision Exited", e);
+    setIsGrounded(false);
+  };
+
   return (
-    // <RigidBody
-    //   ref={body}
-    //   canSleep={false}
-    //   //   colliders="ball"
-    //   colliders="cuboid"
-    //   restitution={0.2}
-    //   friction={1}
-    //   linearDamping={0.5}
-    //   angularDamping={0.5}
-    //   position={[0, 1, 0]}
-    // >
     <RigidBody
       ref={body}
-      canSleep={false}
-      colliders="cuboid"
-      restitution={0.2}
+      colliders={false}
+      restitution={0.1}
       friction={1}
-      linearDamping={0.5}
-      angularDamping={0.5}
-      position={[0, 1, 0]}
-      enabledRotations={[false, true, false]} // 👈 Only allow rotation on Y
+      linearDamping={0.3}
+      angularDamping={0.9}
+      position={[0, 1.5, 0]}
+      enabledRotations={[false, true, false]}
+      onCollisionEnter={handleCollisionEnter}
+      onCollisionExit={handleCollisionExit}
     >
-      {/* <mesh castShadow>
-        <icosahedronGeometry args={[0.3, 1]} />
-        <meshStandardMaterial flatShading color="mediumpurple" />
-      </mesh> */}
-
-      <Bicycle
+      <CuboidCollider args={[0.3, 0.8, 0.3]} position={[0, 0.8, 0]} />
+      <Runner
+        animationName={animation}
         rotation={[0, Math.PI, 0]}
-        speed={currentSpeed.current}
-        lean={leanState}
+        scale={[0.005, 0.005, 0.005]}
       />
-      {/* <Cyclist
-        rotation={[0, 1.5, 0]}
-        speed={currentSpeed.current}
-        lean={leanState}
-      /> */}
     </RigidBody>
   );
 }

@@ -164,7 +164,7 @@ export function Level({ count = 5, seed = 0 }) {
           ))}
         </group>
       </group>
-      <BaseFloor width={20} length={50} y={-0.2} zOffset={-25} />
+      <BaseFloor width={200} length={500} y={-0.2} zOffset={-25} />
       <BlockEnd position={[0, 0, -(count + 1) * 4]} />
       <Bounds length={count + 2} />
     </>
